@@ -61,9 +61,8 @@ std::pair<std::optional<u32>, ResultStatus> AppLoader_NCCH::LoadKernelSystemMode
                           ResultStatus::Success);
 }
 
-ResultStatus AppLoader_NCCH::LoadExec(Kernel::SharedPtr<Kernel::Process>& process) {
+ResultStatus AppLoader_NCCH::LoadExec(std::shared_ptr<Kernel::Process>& process) {
     using Kernel::CodeSet;
-    using Kernel::SharedPtr;
 
     if (!is_loaded)
         return ResultStatus::ErrorNotLoaded;
@@ -75,7 +74,7 @@ ResultStatus AppLoader_NCCH::LoadExec(Kernel::SharedPtr<Kernel::Process>& proces
         std::string process_name = Common::StringFromFixedZeroTerminatedBuffer(
             (const char*)overlay_ncch->exheader_header.codeset_info.name, 8);
 
-        SharedPtr<CodeSet> codeset =
+        std::shared_ptr<CodeSet> codeset =
             Core::System::GetInstance().Kernel().CreateCodeSet(process_name, program_id);
 
         codeset->CodeSegment().offset = 0;
@@ -151,7 +150,7 @@ void AppLoader_NCCH::ParseRegionLockoutInfo() {
     }
 }
 
-ResultStatus AppLoader_NCCH::Load(Kernel::SharedPtr<Kernel::Process>& process) {
+ResultStatus AppLoader_NCCH::Load(std::shared_ptr<Kernel::Process>& process) {
     u64_le ncch_program_id;
 
     if (is_loaded)
@@ -173,7 +172,8 @@ ResultStatus AppLoader_NCCH::Load(Kernel::SharedPtr<Kernel::Process>& process) {
         overlay_ncch = &update_ncch;
     }
 
-    Core::Telemetry().AddField(Telemetry::FieldType::Session, "ProgramId", program_id);
+    auto& system = Core::System::GetInstance();
+    system.TelemetrySession().AddField(Telemetry::FieldType::Session, "ProgramId", program_id);
 
     if (auto room_member = Network::GetRoomMember().lock()) {
         Network::GameInfo game_info;
@@ -188,7 +188,7 @@ ResultStatus AppLoader_NCCH::Load(Kernel::SharedPtr<Kernel::Process>& process) {
     if (ResultStatus::Success != result)
         return result;
 
-    Core::System::GetInstance().ArchiveManager().RegisterSelfNCCH(*this);
+    system.ArchiveManager().RegisterSelfNCCH(*this);
 
     ParseRegionLockoutInfo();
 

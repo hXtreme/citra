@@ -60,8 +60,7 @@ ResultCode SoftwareKeyboard::StartImpl(Service::APT::AppletStartupParameter cons
                "The size of the parameter (SoftwareKeyboardConfig) is wrong");
 
     memcpy(&config, parameter.buffer.data(), parameter.buffer.size());
-    text_memory =
-        boost::static_pointer_cast<Kernel::SharedMemory, Kernel::Object>(parameter.object);
+    text_memory = std::static_pointer_cast<Kernel::SharedMemory, Kernel::Object>(parameter.object);
 
     // TODO(Subv): Verify if this is the correct behavior
     memset(text_memory->GetPointer(), 0, text_memory->GetSize());
@@ -69,11 +68,11 @@ ResultCode SoftwareKeyboard::StartImpl(Service::APT::AppletStartupParameter cons
     DrawScreenKeyboard();
 
     using namespace Frontend;
-    frontend_applet = GetRegisteredSoftwareKeyboard();
-    if (frontend_applet) {
-        KeyboardConfig frontend_config = ToFrontendConfig(config);
-        frontend_applet->Setup(&frontend_config);
-    }
+    frontend_applet = Core::System::GetInstance().GetSoftwareKeyboard();
+    ASSERT(frontend_applet);
+
+    KeyboardConfig frontend_config = ToFrontendConfig(config);
+    frontend_applet->Setup(frontend_config);
 
     is_running = true;
     return RESULT_SUCCESS;
@@ -81,7 +80,7 @@ ResultCode SoftwareKeyboard::StartImpl(Service::APT::AppletStartupParameter cons
 
 void SoftwareKeyboard::Update() {
     using namespace Frontend;
-    KeyboardData data(*frontend_applet->ReceiveData());
+    KeyboardData data(frontend_applet->ReceiveData());
     std::u16string text = Common::UTF8ToUTF16(data.text);
     memcpy(text_memory->GetPointer(), text.c_str(), text.length() * sizeof(char16_t));
     switch (config.num_buttons_m1) {
